@@ -1,122 +1,154 @@
--- [[ MEGA HUB PROFISSIONAL - AUTO LOAD ]] --
+-- [[ MASTER HUB PREMIUM V4 - DESIGN MODERNO ]] --
 
--- Se o menu já existir, ele deleta o antigo para não bugar
-if game.CoreGui:FindFirstChild("MasterHub") then
-    game.CoreGui.MasterHub:Destroy()
+local CoreGui = game:GetService("CoreGui")
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local LP = Players.LocalPlayer
+
+-- Deletar versões antigas para evitar sobreposição
+if CoreGui:FindFirstChild("PremiumHub") then
+    CoreGui.PremiumHub:Destroy()
 end
 
-local ScreenGui = Instance.new("ScreenGui")
-local Main = Instance.new("Frame")
+-- Criando a GUI Principal
+local PremiumHub = Instance.new("ScreenGui")
+PremiumHub.Name = "PremiumHub"
+PremiumHub.Parent = CoreGui
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Parent = PremiumHub
+MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+MainFrame.BorderSizePixel = 0
+MainFrame.Position = UDim2.new(0.5, -125, 0.5, -175)
+MainFrame.Size = UDim2.new(0, 250, 0, 350)
+MainFrame.ClipsDescendants = true
+
+-- Arredondar Cantos (UIAspectRatio & UICorner)
+local Corner = Instance.new("UICorner")
+Corner.CornerRadius = UDim.new(0, 10)
+Corner.Parent = MainFrame
+
+local Stroke = Instance.new("UIStroke")
+Stroke.Color = Color3.fromRGB(0, 170, 255)
+Stroke.Thickness = 2
+Stroke.Parent = MainFrame
+
+-- Título
+local Header = Instance.new("TextLabel")
+Header.Parent = MainFrame
+Header.Size = UDim2.new(1, 0, 0, 40)
+Header.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+Header.Text = "GITHUB MASTER V4 ⚡"
+Header.TextColor3 = Color3.fromRGB(255, 255, 255)
+Header.Font = Enum.Font.GothamBold
+Header.TextSize = 16
+
 local Container = Instance.new("ScrollingFrame")
-local UIListLayout = Instance.new("UIListLayout")
-local Title = Instance.new("TextLabel")
-
--- Configurações de exibição (Garante que apareça na tela)
-ScreenGui.Name = "MasterHub"
-ScreenGui.Parent = game.CoreGui
-ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-
-Main.Name = "Main"
-Main.Parent = ScreenGui
-Main.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-Main.BorderSizePixel = 2
-Main.BorderColor3 = Color3.fromRGB(255, 0, 0) -- Borda Vermelha Profissional
-Main.Position = UDim2.new(0.5, -110, 0.5, -150)
-Main.Size = UDim2.new(0, 220, 0, 300)
-Main.Active = true
-Main.Draggable = true -- Você pode arrastar com o mouse
-
-Title.Parent = Main
-Title.Size = UDim2.new(1, 0, 0, 35)
-Title.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-Title.Text = "GITHUB V.3 ⚡"
-Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.TextSize = 18
-Title.Font = Enum.Font.GothamBold
-
-Container.Parent = Main
-Container.Position = UDim2.new(0, 5, 0, 40)
-Container.Size = UDim2.new(1, -10, 1, -45)
+Container.Parent = MainFrame
+Container.Position = UDim2.new(0, 10, 0, 50)
+Container.Size = UDim2.new(1, -20, 1, -60)
 Container.BackgroundTransparency = 1
-Container.ScrollBarThickness = 5
-Container.CanvasSize = UDim2.new(0, 0, 2, 0) -- Espaço para muitos botões
+Container.ScrollBarThickness = 2
+Container.CanvasSize = UDim2.new(0, 0, 1.5, 0)
 
-UIListLayout.Parent = Container
-UIListLayout.Padding = UDim.new(0, 5)
+local Layout = Instance.new("UIListLayout")
+Layout.Parent = Container
+Layout.Padding = UDim.new(0, 8)
 
--- Função para criar botões que piscam ao clicar
-local function NewButton(name, func)
-    local btn = Instance.new("TextButton")
-    btn.Parent = Container
-    btn.Size = UDim2.new(1, 0, 0, 35)
-    btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-    btn.Text = name
-    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    btn.Font = Enum.Font.SourceSans
-    btn.TextSize = 16
-    
-    btn.MouseButton1Click:Connect(function()
-        btn.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+-- Função para criar botões BONITOS
+local function AddModule(text, func)
+    local Button = Instance.new("TextButton")
+    Button.Parent = Container
+    Button.Size = UDim2.new(1, 0, 0, 35)
+    Button.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+    Button.Text = text
+    Button.TextColor3 = Color3.fromRGB(200, 200, 200)
+    Button.Font = Enum.Font.Gotham
+    Button.TextSize = 14
+    Button.AutoButtonColor = true
+
+    local btnCorner = Instance.new("UICorner")
+    btnCorner.CornerRadius = UDim.new(0, 6)
+    btnCorner.Parent = Button
+
+    Button.MouseButton1Click:Connect(function()
+        local success, err = pcall(func)
+        if not success then warn("Erro no modulo: " .. err) end
+        
+        -- Efeito visual de clique
+        Button.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+        Button.TextColor3 = Color3.fromRGB(255, 255, 255)
         task.wait(0.1)
-        btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-        pcall(func)
+        Button.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+        Button.TextColor3 = Color3.fromRGB(200, 200, 200)
     end)
 end
 
--- [[ AS 100+ FUNÇÕES (Principais) ]] --
+-- [[ FUNCIONALIDADES ]] --
 
-NewButton("❄️ CONGELAR MEU PLAYER", function()
-    local hrp = game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-    if hrp then
-        hrp.Anchored = not hrp.Anchored
-    end
+AddModule("❄️ Congelar Player", function()
+    local root = LP.Character:FindFirstChild("HumanoidRootPart")
+    if root then root.Anchored = not root.Anchored end
 end)
 
-NewButton("🚀 VELOCIDADE (SPEED)", function()
-    game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = 100
+AddModule("⚡ Velocidade Insana", function()
+    LP.Character.Humanoid.WalkSpeed = 120
 end)
 
-NewButton("🦘 PULO ALTO", function()
-    game.Players.LocalPlayer.Character.Humanoid.JumpPower = 150
+AddModule("🚀 Pulo Infinito", function()
+    UserInputService.JumpRequest:Connect(function()
+        LP.Character.Humanoid:ChangeState("Jumping")
+    end)
 end)
 
-NewButton("👻 ATRAVESSAR TUDO (NOCLIP)", function()
+AddModule("👻 Atravessar Tudo (NoClip)", function()
     game:GetService("RunService").Stepped:Connect(function()
-        for _, v in pairs(game.Players.LocalPlayer.Character:GetDescendants()) do
+        for _, v in pairs(LP.Character:GetDescendants()) do
             if v:IsA("BasePart") then v.CanCollide = false end
         end
     end)
 end)
 
-NewButton("👁️ VER PLAYERS (ESP)", function()
-    for _, p in pairs(game.Players:GetPlayers()) do
-        if p ~= game.Players.LocalPlayer and p.Character then
-            local h = Instance.new("Highlight", p.Character)
-            h.FillColor = Color3.fromRGB(255, 0, 0)
+AddModule("🌈 Ver Inimigos (ESP)", function()
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= LP and p.Character then
+            local highlight = Instance.new("Highlight", p.Character)
+            highlight.FillColor = Color3.fromRGB(255, 0, 0)
+            highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
         end
     end
 end)
 
-NewButton("☁️ VOAR (FLY)", function()
+AddModule("☁️ Abrir Menu de Voo", function()
     loadstring(game:HttpGet("https://raw.githubusercontent.com/XNEOFF/FlyGuiV3/main/FlyGuiV3.lua"))()
 end)
 
-NewButton("☀️ RETIRAR ESCURIDÃO", function()
-    game.Lighting.Brightness = 3
-    game.Lighting.ClockTime = 12
-    game.Lighting.GlobalShadows = false
+AddModule("🛑 Destruir Script", function()
+    PremiumHub:Destroy()
 end)
 
-NewButton("🚫 ANTI-AFK (NÃO CAIR)", function()
-    game:GetService("Players").LocalPlayer.Idled:Connect(function()
-        game:GetService("VirtualUser"):CaptureController()
-        game:GetService("VirtualUser"):ClickButton2(Vector2.new())
-    end)
+-- Sistema de Arrastar (Draggable)
+local dragging, dragInput, dragStart, startPos
+MainFrame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = MainFrame.Position
+    end
 end)
 
--- Notificação Inicial
-game.StarterGui:SetCore("SendNotification", {
-    Title = "SISTEMA ATIVADO",
-    Text = "Menu Profissional Carregado!",
-    Duration = 5
-})
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+        local delta = input.Position - dragStart
+        MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = false
+    end
+end)
+
+print("Painel Premium carregado com sucesso!")
