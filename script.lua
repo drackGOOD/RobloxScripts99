@@ -1,113 +1,87 @@
 local player = game.Players.LocalPlayer
 
 local function setup(char)
+	local humanoid = char:WaitForChild("Humanoid")
 	local root = char:WaitForChild("HumanoidRootPart")
+
+	local flying = false
+	local invis = false
+	local speed = 50
+
+	local bodyGyro
+	local bodyVelocity
 
 	local UIS = game:GetService("UserInputService")
 	local RunService = game:GetService("RunService")
 
-	local flying = false
-	local invis = false
-	local speed = 60
-
-	local bodyGyro, bodyVelocity
-
-	-- GUI
-	local gui = Instance.new("ScreenGui", player.PlayerGui)
-	gui.Name = "PainelSimples"
-
-	local frame = Instance.new("Frame", gui)
-	frame.Size = UDim2.new(0, 230, 0, 220)
-	frame.Position = UDim2.new(0, 40, 0.5, -110)
-	frame.BackgroundColor3 = Color3.fromRGB(20,20,25)
-	frame.Active = true
-	frame.Draggable = true
-
-	Instance.new("UICorner", frame)
-
-	local function btn(txt, y)
-		local b = Instance.new("TextButton", frame)
-		b.Size = UDim2.new(0.9,0,0,40)
-		b.Position = UDim2.new(0.05,0,y,0)
-		b.Text = txt
-		b.BackgroundColor3 = Color3.fromRGB(60,60,60)
-		b.TextColor3 = Color3.new(1,1,1)
-		b.TextScaled = true
-		Instance.new("UICorner", b)
-		return b
-	end
-
-	local flyBtn = btn("VOO: OFF", 0.2)
-	local invisBtn = btn("INVIS: OFF", 0.45)
-	local speedBtn = btn("SPEED: 60", 0.7)
-
-	-- invisível LOCAL (só você vê)
+	-- FUNÇÃO INVISÍVEL
 	local function setInvisible(state)
-		for _, v in pairs(char:GetDescendants()) do
-			if v:IsA("BasePart") then
-				v.LocalTransparencyModifier = state and 1 or 0
-			elseif v:IsA("Decal") then
-				v.Transparency = state and 1 or 0
+		for _, obj in pairs(char:GetDescendants()) do
+			if obj:IsA("BasePart") then
+				obj.Transparency = state and 1 or 0
+			elseif obj:IsA("Decal") then
+				obj.Transparency = state and 1 or 0
 			end
 		end
 	end
 
-	-- voo
-	local function toggleFly()
-		flying = not flying
-		
-		if flying then
-			bodyGyro = Instance.new("BodyGyro", root)
-			bodyGyro.P = 9e4
-			bodyGyro.maxTorque = Vector3.new(9e9,9e9,9e9)
+	-- TECLAS
+	UIS.InputBegan:Connect(function(input, gp)
+		if gp then return end
 
-			bodyVelocity = Instance.new("BodyVelocity", root)
-			bodyVelocity.maxForce = Vector3.new(9e9,9e9,9e9)
-		else
-			if bodyGyro then bodyGyro:Destroy() end
-			if bodyVelocity then bodyVelocity:Destroy() end
+		-- VOAR (F)
+		if input.KeyCode == Enum.KeyCode.F then
+			flying = not flying
+
+			if flying then
+				bodyGyro = Instance.new("BodyGyro", root)
+				bodyGyro.P = 9e4
+				bodyGyro.maxTorque = Vector3.new(9e9, 9e9, 9e9)
+				bodyGyro.CFrame = root.CFrame
+
+				bodyVelocity = Instance.new("BodyVelocity", root)
+				bodyVelocity.Velocity = Vector3.new(0,0,0)
+				bodyVelocity.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+			else
+				if bodyGyro then bodyGyro:Destroy() end
+				if bodyVelocity then bodyVelocity:Destroy() end
+			end
 		end
-		
-		flyBtn.Text = "VOO: "..(flying and "ON" or "OFF")
-	end
 
-	-- invisível
-	local function toggleInvis()
-		invis = not invis
-		setInvisible(invis)
-		invisBtn.Text = "INVIS: "..(invis and "ON" or "OFF")
-	end
+		-- INVISÍVEL (G)
+		if input.KeyCode == Enum.KeyCode.G then
+			invis = not invis
+			setInvisible(invis)
+		end
+	end)
 
-	-- speed
-	local speeds = {30,60,100,150}
-	local index = 2
-
-	local function changeSpeed()
-		index += 1
-		if index > #speeds then index = 1 end
-		
-		speed = speeds[index]
-		speedBtn.Text = "SPEED: "..speed
-	end
-
-	flyBtn.MouseButton1Click:Connect(toggleFly)
-	invisBtn.MouseButton1Click:Connect(toggleInvis)
-	speedBtn.MouseButton1Click:Connect(changeSpeed)
-
+	-- MOVIMENTO DO VOO
 	RunService.RenderStepped:Connect(function()
 		if flying and bodyVelocity then
 			local cam = workspace.CurrentCamera
-			local dir = Vector3.new()
+			local direction = Vector3.new(0,0,0)
 
-			if UIS:IsKeyDown(Enum.KeyCode.W) then dir += cam.CFrame.LookVector end
-			if UIS:IsKeyDown(Enum.KeyCode.S) then dir -= cam.CFrame.LookVector end
-			if UIS:IsKeyDown(Enum.KeyCode.A) then dir -= cam.CFrame.RightVector end
-			if UIS:IsKeyDown(Enum.KeyCode.D) then dir += cam.CFrame.RightVector end
+			if UIS:IsKeyDown(Enum.KeyCode.W) then
+				direction += cam.CFrame.LookVector
+			end
+			if UIS:IsKeyDown(Enum.KeyCode.S) then
+				direction -= cam.CFrame.LookVector
+			end
+			if UIS:IsKeyDown(Enum.KeyCode.A) then
+				direction -= cam.CFrame.RightVector
+			end
+			if UIS:IsKeyDown(Enum.KeyCode.D) then
+				direction += cam.CFrame.RightVector
+			end
 
-			bodyVelocity.Velocity = dir * speed
+			bodyVelocity.Velocity = direction * speed
 		end
 	end)
 end
 
-if player.Character then setup(player.Character) end
+-- reaplicar ao respawn
+if player.Character then
+	setup(player.Character)
+end
+
 player.CharacterAdded:Connect(setup)
