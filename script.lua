@@ -113,25 +113,27 @@ local flyBtn = NewButton("✈️ VOO: OFF", 60, function(b)
 end)
 
 -- 2. INVISÍVEL (total - inclui tudo)
+-- 2. INVISÍVEL (REAL - para os outros jogadores também)
 local invisBtn = NewButton("👻 INVISÍVEL: OFF", 115, function(b)
     Settings.Invis = not Settings.Invis
     b.Text = "👻 INVISÍVEL: " .. (Settings.Invis and "ON" or "OFF")
     b.BackgroundColor3 = Settings.Invis and Color3.fromRGB(170, 0, 255) or Color3.fromRGB(35, 35, 45)
 
-    local function applyInvis(c)
+    local function applyInvis(c, isInvisible)
         if not c then return end
         for _, obj in pairs(c:GetDescendants()) do
             if obj:IsA("BasePart") and obj.Name ~= "HumanoidRootPart" then
-                obj.LocalTransparencyModifier = Settings.Invis and 1 or 0
-                obj.Transparency = Settings.Invis and 1 or 0
+                obj.Transparency = isInvisible and 1 or 0
+                -- Mantém um pouco visível para você (opcional)
+                obj.LocalTransparencyModifier = isInvisible and 0.3 or 0
             elseif obj:IsA("Decal") or obj:IsA("Texture") then
-                obj.Transparency = Settings.Invis and 1 or 0
+                obj.Transparency = isInvisible and 1 or 0
             end
         end
     end
-    applyInvis(char)
-end)
 
+    applyInvis(char, Settings.Invis)
+end)
 -- 3. NOCLIP (intangível - atravessa tudo)
 local noclipBtn = NewButton("🧱 NOCLIP: OFF", 170, function(b)
     Settings.Noclip = not Settings.Noclip
