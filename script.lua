@@ -1,160 +1,140 @@
--- PAINEL ULTIMATE SURVIVAL (TECLA G)
+-- PAINEL ULTIMATE SURVIVAL V2 (PRO)
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local Lighting = game:GetService("Lighting")
 local UIS = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+
 local LocalPlayer = Players.LocalPlayer
 
--- --- CONFIGURAÇÕES DE ESTADO ---
-_G.Toggle = true
-local timeSpeed = 1
+-- ESTADOS
+local open = true
 local hacks = {
-    NoHunger = false,
-    InfiniteFire = false,
-    GodMode = false,
-    WalkSpeed = false,
-    InfiniteJump = false,
-    FullBright = false,
-    NoClip = false,
-    AutoLevel = false,
-    ESP = false,
-    NoFog = false,
+    Speed = false,
+    Jump = false,
     Fly = false,
-    InstantDay = false,
-    Invisible = false,
-    HighJump = false,
-    AutoEat = false,
-    InstantInteraction = false,
-    TeleportToFire = false,
-    InfiniteStamina = false,
-    OneHitWood = false,
-    NoCooldown = false
+    NoClip = false,
+    FullBright = false
 }
 
--- --- INTERFACE MODERNA ---
+-- GUI
 local sg = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
-sg.Name = "ForestPremium"
+sg.Name = "UltimatePanel"
 sg.ResetOnSpawn = false
 
 local main = Instance.new("Frame", sg)
-main.Size = UDim2.new(0, 450, 0, 350)
-main.Position = UDim2.new(0.5, -225, 0.5, -175)
-main.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-main.BackgroundTransparency = 0.1
-main.Visible = _G.Toggle
+main.Size = UDim2.new(0, 400, 0, 300)
+main.Position = UDim2.new(0.5, -200, 0.5, -150)
+main.BackgroundColor3 = Color3.fromRGB(20,20,20)
+Instance.new("UICorner", main)
 
-local corner = Instance.new("UICorner", main)
-corner.CornerRadius = UDim.new(0, 10)
-
+-- TITULO
 local title = Instance.new("TextLabel", main)
-title.Size = UDim2.new(1, 0, 0, 40)
-title.Text = "99 NOITES NA FLORESTA - MENU PREMIUM [G]"
-title.TextColor3 = Color3.new(1, 1, 1)
+title.Size = UDim2.new(1,0,0,40)
+title.Text = "🌙 ULTIMATE SURVIVAL"
+title.BackgroundTransparency = 1
+title.TextColor3 = Color3.new(1,1,1)
 title.Font = Enum.Font.GothamBold
 title.TextSize = 18
-title.BackgroundTransparency = 1
 
+-- SCROLL
 local scroll = Instance.new("ScrollingFrame", main)
-scroll.Size = UDim2.new(0.95, 0, 0.8, 0)
-scroll.Position = UDim2.new(0.025, 0, 0.15, 0)
+scroll.Size = UDim2.new(1,0,1,-40)
+scroll.Position = UDim2.new(0,0,0,40)
+scroll.CanvasSize = UDim2.new(0,0,2,0)
 scroll.BackgroundTransparency = 1
-scroll.CanvasSize = UDim2.new(0, 0, 2, 0) -- Espaço para as 20 funções
-local layout = Instance.new("UIGridLayout", scroll)
-layout.CellSize = UDim2.new(0, 200, 0, 35)
-layout.CellPadding = UDim2.new(0, 10, 0, 10)
 
--- --- FUNÇÃO PARA CRIAR BOTÕES ---
-local function addHack(name, hackRef)
+local layout = Instance.new("UIListLayout", scroll)
+layout.Padding = UDim.new(0,8)
+
+-- BOTÃO BONITO
+local function createButton(text, key)
     local btn = Instance.new("TextButton", scroll)
-    btn.Text = name
-    btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-    btn.TextColor3 = Color3.new(1, 1, 1)
+    btn.Size = UDim2.new(1,-10,0,40)
+    btn.Text = text .. " [OFF]"
+    btn.BackgroundColor3 = Color3.fromRGB(40,40,40)
+    btn.TextColor3 = Color3.new(1,1,1)
     btn.Font = Enum.Font.Gotham
-    btn.TextSize = 12
+    btn.TextSize = 14
     Instance.new("UICorner", btn)
 
     btn.MouseButton1Click:Connect(function()
-        hacks[hackRef] = not hacks[hackRef]
-        btn.BackgroundColor3 = hacks[hackRef] and Color3.fromRGB(0, 180, 100) or Color3.fromRGB(50, 50, 50)
-        
-        -- Ação imediata para Level 6
-        if hackRef == "AutoLevel" and hacks[hackRef] then
-            local stats = LocalPlayer:FindFirstChild("leaderstats") or LocalPlayer:FindFirstChild("Stats")
-            local lvl = stats and (stats:FindFirstChild("Level") or stats:FindFirstChild("Nível"))
-            if lvl then lvl.Value = 6 end
-        end
+        hacks[key] = not hacks[key]
+
+        btn.Text = text .. (hacks[key] and " [ON]" or " [OFF]")
+
+        TweenService:Create(btn, TweenInfo.new(0.2), {
+            BackgroundColor3 = hacks[key] and Color3.fromRGB(0,170,100) or Color3.fromRGB(40,40,40)
+        }):Play()
     end)
 end
 
--- --- ADICIONANDO AS 20 FUNÇÕES ---
-addHack("Fome Infinita", "NoHunger")
-addHack("Fogueira Eterna", "InfiniteFire")
-addHack("Vida Infinita (God)", "GodMode")
-addHack("Velocidade (100)", "WalkSpeed")
-addHack("Pulo Infinito", "InfiniteJump")
-addHack("Super Pulo", "HighJump")
-addHack("Nível 6 Instantâneo", "AutoLevel")
-addHack("Noite Rápida (X100)", "InstantDay")
-addHack("Ver Players (ESP)", "ESP")
-addHack("Sem Neblina", "NoFog")
-addHack("Brilho Total", "FullBright")
-addHack("Atravessar Paredes", "NoClip")
-addHack("Voo (Fly)", "Fly")
-addHack("Estamina Infinita", "InfiniteStamina")
-addHack("Comer Automático", "AutoEat")
-addHack("Coleta Rápida", "OneHitWood")
-addHack("Sem Cooldown", "NoCooldown")
-addHack("Invisível", "Invisible")
-addHack("Interação Rápida", "InstantInteraction")
-addHack("TP para Fogueira", "TeleportToFire")
+-- BOTÕES
+createButton("Velocidade", "Speed")
+createButton("Super Pulo", "Jump")
+createButton("Voar (Fly)", "Fly")
+createButton("Atravessar (NoClip)", "NoClip")
+createButton("Brilho Total", "FullBright")
 
--- --- LÓGICA DE TECLA G ---
+-- TOGGLE COM G + ANIMAÇÃO
 UIS.InputBegan:Connect(function(input, chat)
     if not chat and input.KeyCode == Enum.KeyCode.G then
-        _G.Toggle = not _G.Toggle
-        main.Visible = _G.Toggle
+        open = not open
+
+        TweenService:Create(main, TweenInfo.new(0.3), {
+            Position = open and UDim2.new(0.5,-200,0.5,-150) or UDim2.new(0.5,-200,1.5,0)
+        }):Play()
     end
 end)
 
--- --- LOOP DE EXECUÇÃO (100% FUNCIONAL) ---
-RunService.Heartbeat:Connect(function(dt)
-    -- 1. Tempo/Noite
-    if hacks.InstantDay then
-        Lighting.ClockTime += dt * 100
+-- FLY SISTEMA
+local flyVel = Vector3.new()
+
+UIS.InputBegan:Connect(function(i)
+    if i.KeyCode == Enum.KeyCode.W then flyVel = Vector3.new(0,0,-1) end
+    if i.KeyCode == Enum.KeyCode.S then flyVel = Vector3.new(0,0,1) end
+    if i.KeyCode == Enum.KeyCode.A then flyVel = Vector3.new(-1,0,0) end
+    if i.KeyCode == Enum.KeyCode.D then flyVel = Vector3.new(1,0,0) end
+    if i.KeyCode == Enum.KeyCode.Space then flyVel = Vector3.new(0,1,0) end
+end)
+
+UIS.InputEnded:Connect(function()
+    flyVel = Vector3.new()
+end)
+
+-- LOOP
+RunService.RenderStepped:Connect(function()
+    local char = LocalPlayer.Character
+    if not char then return end
+
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    local root = char:FindFirstChild("HumanoidRootPart")
+
+    if hum then
+        hum.WalkSpeed = hacks.Speed and 60 or 16
+        hum.JumpPower = hacks.Jump and 120 or 50
     end
 
-    -- 2. Fogueira (Força o valor a cada milissegundo para o servidor não apagar)
-    if hacks.InfiniteFire then
-        for _, v in pairs(workspace:GetDescendants()) do
-            if v:IsA("NumberValue") and (v.Name:lower():find("fuel") or v.Name:lower():find("fire") or v.Name:lower():find("madeira")) then
-                v.Value = 9999
+    -- FLY
+    if hacks.Fly and root then
+        root.Velocity = flyVel * 80
+    end
+
+    -- NOCLIP
+    if hacks.NoClip then
+        for _, v in pairs(char:GetDescendants()) do
+            if v:IsA("BasePart") then
+                v.CanCollide = false
             end
         end
     end
 
-    -- 3. Fome e Atributos
-    if LocalPlayer.Character then
-        local hum = LocalPlayer.Character:FindFirstChild("Humanoid")
-        
-        if hacks.NoHunger then
-            for _, v in pairs(LocalPlayer:GetDescendants()) do
-                if v:IsA("NumberValue") and (v.Name == "Hunger" or v.Name == "Fome" or v.Name == "Food") then
-                    v.Value = 100
-                end
-            end
-        end
-
-        if hacks.WalkSpeed then hum.WalkSpeed = 100 else hum.WalkSpeed = 16 end
-        
-        if hacks.GodMode then hum.Health = hum.MaxHealth end
+    -- FULLBRIGHT
+    if hacks.FullBright then
+        Lighting.Brightness = 5
+        Lighting.ClockTime = 14
+        Lighting.FogEnd = 100000
     end
 end)
 
--- Loop de Pulo Infinito
-UIS.JumpRequest:Connect(function()
-    if hacks.InfiniteJump and LocalPlayer.Character then
-        LocalPlayer.Character:FindFirstChildOfClass("Humanoid"):ChangeState("Jumping")
-    end
-end)
-
-print("Painel 99 Noites Carregado! Aperte G para abrir.")
+print("Painel PRO carregado! Aperte G")
