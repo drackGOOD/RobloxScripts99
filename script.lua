@@ -1,4 +1,4 @@
--- PAINEL 99 NOITES SUPREMO (AUTO-FARM & SURVIVAL)
+-- PAINEL 99 NOITES NA FLORESTA (VERSÃO SURVIVAL)
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local Lighting = game:GetService("Lighting")
@@ -11,28 +11,28 @@ local ultimaHora = Lighting.ClockTime
 
 -- --- INTERFACE ---
 local sg = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
-sg.Name = "UltraPanel"
+sg.Name = "ForestCheat"
 sg.ResetOnSpawn = false
 
 local frame = Instance.new("Frame", sg)
-frame.Size = UDim2.new(0, 230, 0, 320)
-frame.Position = UDim2.new(0, 50, 0.5, -160)
-frame.BackgroundColor3 = Color3.fromRGB(20, 20, 35)
+frame.Size = UDim2.new(0, 240, 0, 300)
+frame.Position = UDim2.new(0, 50, 0.5, -150)
+frame.BackgroundColor3 = Color3.fromRGB(15, 30, 15) -- Verde escuro floresta
 Instance.new("UICorner", frame)
 
 local title = Instance.new("TextLabel", frame)
-title.Size = UDim2.new(1, 0, 0, 35)
-title.Text = "99 NOITES - CHEAT"
-title.TextColor3 = Color3.new(1, 1, 1)
+title.Size = UDim2.new(1, 0, 0, 40)
+title.Text = "99 NOITES - SURVIVAL"
+title.TextColor3 = Color3.new(0.8, 1, 0.8)
 title.BackgroundTransparency = 1
 title.Font = Enum.Font.GothamBold
 
 local function createBtn(name, pos, action)
     local b = Instance.new("TextButton", frame)
-    b.Size = UDim2.new(0.9, 0, 0, 35)
+    b.Size = UDim2.new(0.9, 0, 0, 40)
     b.Position = pos
     b.Text = name
-    b.BackgroundColor3 = Color3.fromRGB(45, 45, 70)
+    b.BackgroundColor3 = Color3.fromRGB(30, 50, 30)
     b.TextColor3 = Color3.new(1, 1, 1)
     b.Font = Enum.Font.SourceSansBold
     Instance.new("UICorner", b)
@@ -40,67 +40,78 @@ local function createBtn(name, pos, action)
     local active = false
     b.MouseButton1Click:Connect(function()
         active = not active
-        b.BackgroundColor3 = active and Color3.fromRGB(0, 170, 0) or Color3.fromRGB(45, 45, 70)
-        action(active, b)
+        b.BackgroundColor3 = active and Color3.fromRGB(0, 180, 0) or Color3.fromRGB(30, 50, 30)
+        action(active)
     end)
 end
 
 -- --- BOTÕES ---
 
--- 1. Fome Infinita (Tenta congelar o valor da fome)
-createBtn("FOME INFINITA", UDim2.new(0.05, 0, 0.15, 0), function(state)
-    _G.NoHunger = state
+-- 1. Fome e Sede (Sem sentir fome)
+createBtn("CONGELAR FOME/SEDE", UDim2.new(0.05, 0, 0.15, 0), function(state)
+    _G.GodMode = state
 end)
 
--- 2. Fogueira Sempre Acesa
-createBtn("FOGUEIRA INFINITA", UDim2.new(0.05, 0, 0.3, 0), function(state)
-    _G.FireInfinite = state
+-- 2. Fogueira Infinita (Não acaba a madeira)
+createBtn("FOGUEIRA ETERNA", UDim2.new(0.05, 0, 0.32, 0), function(state)
+    _G.InfiniteFire = state
 end)
 
--- 3. Pular para Nível 6
-createBtn("INSTANT LEVEL 6", UDim2.new(0.05, 0, 0.45, 0), function(state)
-    _G.FastLevel = state
+-- 3. Instant Level 6
+createBtn("SET LEVEL 6", UDim2.new(0.05, 0, 0.49, 0), function(state)
+    _G.SetLevel = state
 end)
 
--- 4. Acelerar Tempo
-createBtn("PASSAR NOITE RÁPIDO", UDim2.new(0.05, 0, 0.6, 0), function(state, btn)
+-- 4. Passar Noite (Acelerar Tempo)
+createBtn("ACELERAR DIAS (X100)", UDim2.new(0.05, 0, 0.66, 0), function(state)
     timeSpeed = state and 100 or 1
-    btn.Text = state and "TEMPO: x100" or "TEMPO: x1"
 end)
 
--- 5. ESP
-createBtn("VER JOGADORES (ESP)", UDim2.new(0.05, 0, 0.75, 0), function(state)
+-- 5. ESP Jogadores
+createBtn("VER PLAYERS NO ESCURO", UDim2.new(0.05, 0, 0.83, 0), function(state)
     _G.ESP = state
 end)
 
--- --- LOOP DE EXECUÇÃO ---
+-- --- LOOP DE SOBREVIVÊNCIA ---
 RunService.Heartbeat:Connect(function(dt)
-    -- Controle de Tempo
+    -- Aceleração do Ciclo de Dia/Noite
     Lighting.ClockTime += dt * timeSpeed
-    if Lighting.ClockTime < ultimaHora then diaAtual += 1 end
+    if Lighting.ClockTime < ultimaHora then 
+        diaAtual += 1 
+        print("Sobreviveu a mais uma noite! Noite: " .. diaAtual)
+    end
     ultimaHora = Lighting.ClockTime
 
-    -- Tenta Forçar Fome e Level (Baseado em nomes comuns de scripts de sobrevivência)
+    -- Lógica de Stats (Fome, Level, Fogueira)
     if LocalPlayer.Character then
-        -- Tenta achar valor de Fome (Hunger)
-        local stats = LocalPlayer:FindFirstChild("leaderstats") or LocalPlayer:FindFirstChild("Stats")
+        -- Tenta achar atributos de sobrevivência
+        local hum = LocalPlayer.Character:FindFirstChild("Humanoid")
         
-        if _G.NoHunger then
-            local hunger = LocalPlayer.Character:FindFirstChild("Hunger") or (stats and stats:FindFirstChild("Hunger"))
-            if hunger and hunger:IsA("NumberValue") then hunger.Value = 100 end
+        -- Congelar Fome
+        if _G.GodMode then
+            -- Procura por Hunger, Food, Fome, Energy
+            for _, v in pairs(LocalPlayer:GetDescendants()) do
+                if v:IsA("NumberValue") and (v.Name == "Hunger" or v.Name == "Fome" or v.Name == "Food") then
+                    v.Value = 100
+                end
+            end
         end
 
-        if _G.FastLevel then
-            local lvl = (stats and stats:FindFirstChild("Level")) or LocalPlayer:FindFirstChild("Level")
-            if lvl and lvl.Value < 6 then lvl.Value = 6 end
+        -- Forçar Level 6
+        if _G.SetLevel then
+            local stats = LocalPlayer:FindFirstChild("leaderstats")
+            if stats then
+                local lvl = stats:FindFirstChild("Level") or stats:FindFirstChild("Nível")
+                if lvl then lvl.Value = 6 end
+            end
         end
     end
 
-    -- Tenta manter a fogueira (Procura objetos com nome "Fire" ou "Fogueira" perto)
-    if _G.FireInfinite then
+    -- Manter Fogueiras do mapa acesas
+    if _G.InfiniteFire then
         for _, obj in pairs(workspace:GetDescendants()) do
-            if (obj.Name == "Fire" or obj.Name == "Fuel") and obj:IsA("NumberValue") then
-                obj.Value = 100
+            if obj.Name:lower():find("fuel") or obj.Name:lower():find("madeira") or obj.Name:lower():find("fire") then
+                if obj:IsA("NumberValue") then obj.Value = 100 end
             end
         end
     end
@@ -110,8 +121,11 @@ end)
 RunService.RenderStepped:Connect(function()
     if _G.ESP then
         for _, p in pairs(Players:GetPlayers()) do
-            if p ~= LocalPlayer and p.Character and not p.Character:FindFirstChild("Highlight") then
-                Instance.new("Highlight", p.Character).FillColor = Color3.new(1,0,0)
+            if p ~= LocalPlayer and p.Character then
+                if not p.Character:FindFirstChild("Highlight") then
+                    local h = Instance.new("Highlight", p.Character)
+                    h.FillColor = Color3.new(1, 0, 0)
+                end
             end
         end
     end
