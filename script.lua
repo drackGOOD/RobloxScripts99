@@ -1,89 +1,84 @@
+-- // SERVIÇOS
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
 
--- // CONFIGURAÇÕES
-local MAX_DISTANCIA = 200 -- Distância máxima para ver o ESP
-local FADE_DISTANCIA = 50 -- Começa a sumir após essa distância
-local CHECAR_VISAO = true -- Só mostra se não houver paredes entre você e o alvo
+-- // CONFIGURAÇÕES (Ajuste para testar)
+local CONFIG = {
+	MAX_DISTANCIA = 300,
+	FADE_DISTANCIA = 100,
+	SUAVE_MIRA = 0.1, -- 0.1 (lento/humano) até 1 (instantâneo)
+	TECLA_MIRA = Enum.KeyCode.E,
+	CHECAR_VISAO = true,
+	COR_INIMIGO = Color3.fromRGB(255, 0, 0),
+	COR_ALIADO = Color3.fromRGB(0, 255, 0)
+}
 
 local localPlayer = Players.LocalPlayer
 local camera = workspace.CurrentCamera
+local travaAtiva = false
 
--- // FUNÇÃO DE VISIBILIDADE (Raycast)
-local function estaVisivel(character)
-	if not CHECAR_VISAO then return true end
-	local origin = camera.CFrame.Position
-	local targetPos = character.HumanoidRootPart.Position
-	local direction = targetPos - origin
+-- // 1. FUNÇÃO DE VISIBILIDADE (RAYCAST)
+local function estaVisivel(alvo)
+	if not CONFIG.CHECAR_VISAO then return true end
+	local params = RaycastParams.new()
+	params.FilterDescendantsInstances = {localPlayer.Character, alvo}
+	params.FilterType = Enum.RaycastFilterType.Exclude
 	
-	local raycastParams = RaycastParams.new()
-	raycastParams.FilterDescendantsInstances = {localPlayer.Character, character}
-	raycastParams.FilterType = Enum.RaycastFilterType.Exclude
-	
-	local result = workspace:Raycast(origin, direction, raycastParams)
-	return result == nil -- Se for nil, não bateu em nenhuma parede
+	local direcao = alvo.HumanoidRootPart.Position - camera.CFrame.Position
+	local resultado = workspace:Raycast(camera.CFrame.Position, direcao, params)
+	return resultado == nil
 end
 
--- // FUNÇÃO PARA CRIAR O ESP
+-- // 2. FUNÇÃO VISUAL (ESP + BOX)
 local function criarESP(player)
 	if player == localPlayer then return end
 
 	local function setup(char)
-		local root = char:WaitForChild("HumanoidRootPart", 5)
-		local hum = char:WaitForChild("Humanoid", 5)
-		if not root or not hum then return end
-
-		-- Criar Container de Texto (Nome, Vida, Distância)
-		local bgui = Instance.new("BillboardGui")
-		bgui.Name = "ESP_UI"
-		bgui.Size = UDim2.new(4, 0, 1.5, 0)
-		bgui.StudsOffset = Vector3.new(0, 3, 0)
+		local root = char:WaitForChild("HumanoidRootPart", 10)
+		local hum = char:WaitForChild("Humanoid", 10)
+		
+		-- Container de Texto
+		local bgui = Instance.new("BillboardGui", root)
+		bgui.Name = "EduESP"
+		bgui.Size = UDim2.new(4, 0, 2, 0)
 		bgui.AlwaysOnTop = true
-		bgui.Parent = root
+		bgui.StudsOffset = Vector3.new(0, 3, 0)
 
-		local infoLabel = Instance.new("TextLabel")
-		infoLabel.Size = UDim2.new(1, 0, 1, 0)
-		infoLabel.BackgroundTransparency = 1
-		infoLabel.TextColor3 = player.TeamColor.Color -- Cor por Time
-		infoLabel.TextStrokeTransparency = 0
-		infoLabel.TextScaled = true
-		infoLabel.Parent = bgui
+		local info = Instance.new("TextLabel", bgui)
+		info.Size = UDim2.new(1, 0, 1, 0)
+		info.BackgroundTransparency = 1
+		info.TextColor3 = (player.Team == localPlayer.Team) and CONFIG.COR_ALIADO or CONFIG.COR_INIMIGO
+		info.TextStrokeTransparency = 0
+		info.TextScaled = true
 
-		-- Criar Box (Bounding Box usando Highlight)
-		local box = Instance.new("Highlight")
-		box.Name = "ESP_Box"
-		box.FillTransparency = 0.8
-		box.OutlineTransparency = 0
-		box.FillColor = player.TeamColor.Color
-		box.OutlineColor = Color3.new(1, 1, 1)
-		box.Parent = char
+		-- Box Visual (Highlight)
+		local highlight = Instance.new("Highlight", char)
+		highlight.FillTransparency = 0.7
+		highlight.FillColor = info.TextColor3
+		highlight.OutlineColor = Color3.new(1, 1, 1)
 
-		-- Loop de Atualização
-		local connection
-		connection = RunService.RenderStepped:Connect(function()
-			if not char.Parent or not root.Parent then 
-				connection:Disconnect() 
-				return 
-			end
-
-			local dist = (camera.CFrame.Position - root.Position).Magnitude
+		-- Update do ESP
+		local conn
+		conn = RunService.RenderStepped:Connect(function()
+			if not char.Parent then conn:Disconnect() return end
 			
-			-- Lógica de Distância e Visibilidade
-			if dist < MAX_DISTANCIA and estaVisivel(char) then
-				bgui.Enabled = true
-				box.Enabled = true
-				
-				-- Fade (Transparência baseada na distância)
-				local alpha = math.clamp((dist - FADE_DISTANCIA) / (MAX_DISTANCIA - FADE_DISTANCIA), 0, 1)
-				infoLabel.TextTransparency = alpha
-				box.OutlineTransparency = alpha
-				box.FillTransparency = 0.8 + (alpha * 0.2)
+			local dist = (camera.CFrame.Position - root.Position).Magnitude
+			local visivel = estaVisivel(char)
 
-				-- Atualizar Texto
-				infoLabel.Text = string.format("%s\nHP: %d | Dist: %dm", player.Name, math.floor(hum.Health), math.floor(dist))
+			if dist < CONFIG.MAX_DISTANCIA and visivel then
+				bgui.Enabled = true
+				highlight.Enabled = true
+				
+				-- Fade de distância
+				local alpha = math.clamp((dist - CONFIG.FADE_DISTANCIA) / (CONFIG.MAX_DISTANCIA - CONFIG.FADE_DISTANCIA), 0, 1)
+				info.TextTransparency = alpha
+				highlight.OutlineTransparency = alpha
+				
+				info.Text = string.format("%s\n%d HP | %dm", player.Name, math.floor(hum.Health), math.floor(dist))
 			else
 				bgui.Enabled = false
-				box.Enabled = false
+				highlight.Enabled = false
 			end
 		end)
 	end
@@ -92,6 +87,49 @@ local function criarESP(player)
 	if player.Character then setup(player.Character) end
 end
 
--- // INICIALIZAÇÃO
+-- // 3. LÓGICA DE BUSCA DE ALVO (FOV/MOUSE)
+local function obterAlvoProximo()
+	local alvoFinal = nil
+	local menorDistanciaMouse = math.huge
+
+	for _, p in ipairs(Players:GetPlayers()) do
+		if p ~= localPlayer and p.Team ~= localPlayer.Team and p.Character then
+			local char = p.Character
+			local root = char:FindFirstChild("HumanoidRootPart")
+			if root and char.Humanoid.Health > 0 and estaVisivel(char) then
+				local posTela, visivelTela = camera:WorldToViewportPoint(root.Position)
+				if visivelTela then
+					local mouse = UserInputService:GetMouseLocation()
+					local distMouse = (Vector2.new(posTela.X, posTela.Y) - mouse).Magnitude
+					if distMouse < menorDistanciaMouse then
+						menorDistanciaMouse = distMouse
+						alvoFinal = char
+					end
+				end
+			end
+		end
+	end
+	return alvoFinal
+end
+
+-- // 4. LOOP PRINCIPAL E INPUT
+RunService.RenderStepped:Connect(function()
+	if travaAtiva then
+		local alvo = obterAlvoProximo()
+		if alvo then
+			local novaCFrame = CFrame.lookAt(camera.CFrame.Position, alvo.HumanoidRootPart.Position)
+			camera.CFrame = camera.CFrame:Lerp(novaCFrame, CONFIG.SUAVE_MIRA)
+		end
+	end
+end)
+
+UserInputService.InputBegan:Connect(function(i, p)
+	if not p and i.KeyCode == CONFIG.TECLA_MIRA then
+		travaAtiva = not travaAtiva
+		print("Estado da Mira:", travaAtiva)
+	end
+end)
+
+-- Iniciar para todos
 Players.PlayerAdded:Connect(criarESP)
 for _, p in ipairs(Players:GetPlayers()) do criarESP(p) end
