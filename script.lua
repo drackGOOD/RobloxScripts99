@@ -1,7 +1,18 @@
--- // Configurações Globais
-local Settings = {
-    Aimbot = { Enabled = true, Key = Enum.KeyCode.E, Smoothness = 0.15, TeamCheck = true },
-    ESP = { Enabled = true, Boxes = true, Names = true, Health = true, Distance = true, MaxDist = 500 }
+-- Configurações Gerais
+local Config = {
+    Aimbot = {
+        Ativado = true,
+        Tecla = Enum.KeyCode.E, -- Segure E para travar a mira
+        Suavidade = 0.15, -- Quanto menor, mais "humana" é a mira
+        ChecarTime = true,
+        ChecarParede = true
+    },
+    ESP = {
+        Ativado = true,
+        CorInimigo = Color3.fromRGB(255, 0, 0),
+        CorAliado = Color3.fromRGB(0, 255, 0),
+        MaxDistancia = 1000
+    }
 }
 
 local Players = game:GetService("Players")
@@ -9,88 +20,100 @@ local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
-local Aiming = false
+local Mouse = LocalPlayer:GetMouse()
 
--- // Função de Visibilidade
-local function IsVisible(Target)
-    local CastParams = RaycastParams.new()
-    CastParams.FilterDescendantsInstances = {LocalPlayer.Character, Target}
-    CastParams.FilterType = Enum.RaycastFilterType.Exclude
-    local Ray = workspace:Raycast(Camera.CFrame.Position, (Target.HumanoidRootPart.Position - Camera.CFrame.Position), CastParams)
-    return Ray == nil
+local mirando = false
+
+-- 1. Função de Raycast (Verifica se há paredes)
+local function estaVisivel(alvo)
+    if not Config.Aimbot.ChecarParede then return true end
+    local params = RaycastParams.new()
+    params.FilterDescendantsInstances = {LocalPlayer.Character, alvo}
+    params.FilterType = Enum.RaycastFilterType.Exclude
+    
+    local origem = Camera.CFrame.Position
+    local direcao = alvo.HumanoidRootPart.Position - origem
+    local resultado = workspace:Raycast(origem, direcao, params)
+    
+    return resultado == nil
 end
 
--- // Criar ESP (Visual)
-local function CreateESP(Player)
-    Player.CharacterAdded:Connect(function(Char)
-        local Highlight = Instance.new("Highlight")
-        Highlight.Name = "XenoESP"
-        Highlight.FillTransparency = 0.7
-        Highlight.OutlineTransparency = 0
-        Highlight.FillColor = (Player.Team == LocalPlayer.Team) and Color3.new(0,1,0) or Color3.new(1,0,0)
-        Highlight.Parent = Char
+-- 2. Sistema de ESP (Destaque e Informações)
+local function criarESP(player)
+    player.CharacterAdded:Connect(function(char)
+        local root = char:WaitForChild("HumanoidRootPart")
+        local hum = char:WaitForChild("Humanoid")
 
-        local Billboard = Instance.new("BillboardGui", Char:WaitForChild("HumanoidRootPart"))
-        Billboard.Size = UDim2.new(4,0,2,0)
-        Billboard.AlwaysOnTop = true
-        Billboard.StudsOffset = Vector3.new(0,3,0)
-        
-        local Label = Instance.new("TextLabel", Billboard)
-        Label.Size = UDim2.new(1,0,1,0)
-        Label.BackgroundTransparency = 1
-        Label.TextStrokeTransparency = 0
-        Label.TextColor3 = Color3.new(1,1,1)
-        Label.TextScaled = true
+        -- Highlight (Caixa)
+        local highlight = Instance.new("Highlight", char)
+        highlight.FillTransparency = 0.6
+        highlight.OutlineTransparency = 0
+        highlight.FillColor = (player.Team == LocalPlayer.Team) and Config.ESP.CorAliado or Config.ESP.CorInimigo
 
-        RunService.RenderStepped:Connect(function()
-            if Char and Char:FindFirstChild("Humanoid") then
-                local Dist = (LocalPlayer.Character.HumanoidRootPart.Position - Char.HumanoidRootPart.Position).Magnitude
-                Label.Text = string.format("%s\n%d HP | %dm", Player.Name, Char.Humanoid.Health, Dist)
-                Label.Visible = Dist <= Settings.ESP.MaxDist
-                Highlight.Enabled = Dist <= Settings.ESP.MaxDist
-            end
+        -- Billboard (Texto)
+        local gui = Instance.new("BillboardGui", root)
+        gui.Size = UDim2.new(4, 0, 2, 0)
+        gui.AlwaysOnTop = true
+        gui.StudsOffset = Vector3.new(0, 3, 0)
+
+        local label = Instance.new("TextLabel", gui)
+        label.Size = UDim2.new(1, 0, 1, 0)
+        label.BackgroundTransparency = 1
+        label.TextStrokeTransparency = 0
+        label.TextColor3 = Color3.new(1, 1, 1)
+        label.TextScaled = true
+
+        local conexao
+        conexao = RunService.RenderStepped:Connect(function()
+            if not char.Parent then conexao:Disconnect() return end
+            local dist = (Camera.CFrame.Position - root.Position).Magnitude
+            label.Text = string.format("%s\n%d HP | %dm", player.Name, hum.Health, dist)
+            label.Visible = dist < Config.ESP.MaxDistancia
+            highlight.Enabled = label.Visible
         end)
     end)
 end
 
--- // Lógica do Aimbot
-local function GetClosestPlayer()
-    local Target = nil
-    local ShortestDist = math.huge
-    for _, P in ipairs(Players:GetPlayers()) do
-        if P ~= LocalPlayer and P.Character and P.Character:FindFirstChild("Humanoid") and P.Character.Humanoid.Health > 0 then
-            if not Settings.Aimbot.TeamCheck or P.Team ~= LocalPlayer.Team then
-                local Pos, OnScreen = Camera:WorldToViewportPoint(P.Character.HumanoidRootPart.Position)
-                if OnScreen and IsVisible(P.Character) then
-                    local Dist = (Vector2.new(Pos.X, Pos.Y) - UserInputService:GetMouseLocation()).Magnitude
-                    if Dist < ShortestDist then
-                        ShortestDist = Dist
-                        Target = P.Character
+-- 3. Lógica de Busca de Alvo (Pelo Mouse)
+local function getAlvoProximo()
+    local alvoProx = nil
+    local menorDistancia = math.huge
+
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+            if not Config.Aimbot.ChecarTime or p.Team ~= LocalPlayer.Team then
+                local pos, visivel = Camera:WorldToViewportPoint(p.Character.HumanoidRootPart.Position)
+                if visivel and estaVisivel(p.Character) then
+                    local distMouse = (Vector2.new(pos.X, pos.Y) - UserInputService:GetMouseLocation()).Magnitude
+                    if distMouse < menorDistancia then
+                        menorDistancia = distMouse
+                        alvoProx = p.Character
                     end
                 end
             end
         end
     end
-    return Target
+    return alvoProx
 end
 
--- // Loop de Execução
+-- 4. Controle de Input e Loop
+UserInputService.InputBegan:Connect(function(i, p)
+    if not p and i.KeyCode == Config.Aimbot.Tecla then mirando = true end
+end)
+UserInputService.InputEnded:Connect(function(i, p)
+    if not p and i.KeyCode == Config.Aimbot.Tecla then mirando = false end
+end)
+
 RunService.RenderStepped:Connect(function()
-    if Aiming and Settings.Aimbot.Enabled then
-        local Target = GetClosestPlayer()
-        if Target then
-            local LookAt = CFrame.lookAt(Camera.CFrame.Position, Target.HumanoidRootPart.Position)
-            Camera.CFrame = Camera.CFrame:Lerp(LookAt, Settings.Aimbot.Smoothness)
+    if mirando then
+        local alvo = getAlvoProximo()
+        if alvo then
+            local miraFinal = CFrame.lookAt(Camera.CFrame.Position, alvo.HumanoidRootPart.Position)
+            Camera.CFrame = Camera.CFrame:Lerp(miraFinal, Config.Aimbot.Suavidade)
         end
     end
 end)
 
-UserInputService.InputBegan:Connect(function(I, P)
-    if not P and I.KeyCode == Settings.Aimbot.Key then Aiming = true end
-end)
-UserInputService.InputEnded:Connect(function(I, P)
-    if not P and I.KeyCode == Settings.Aimbot.Key then Aiming = false end
-end)
-
-for _, P in ipairs(Players:GetPlayers()) do CreateESP(P) end
-Players.PlayerAdded:Connect(CreateESP)
+-- Iniciar para quem já está no servidor
+for _, p in ipairs(Players:GetPlayers()) do criarESP(p) end
+Players.PlayerAdded:Connect(criarESP)
