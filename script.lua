@@ -1,171 +1,90 @@
 local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
 local RunService = game:GetService("RunService")
+local Lighting = game:GetService("Lighting")
 
-local frame = script.Parent
-local btnESP = frame:WaitForChild("ToggleESP")
-local btnRadar = frame:WaitForChild("ToggleRadar")
-local btnInfo = frame:WaitForChild("ToggleInfo")
-local radarFrame = frame:WaitForChild("RadarFrame")
+local player = Players.LocalPlayer
 
-local espAtivo = false
-local radarAtivo = false
-local infoAtivo = false
+-- CONFIG
+local config = {
+    timeSpeed = 1,
+    godMode = false,
+    infiniteFire = false,
+    levelBoost = false
+}
 
-local highlights = {}
-local billboards = {}
+-- GUI
+local sg = Instance.new("ScreenGui")
+sg.Parent = player:WaitForChild("PlayerGui")
+sg.Name = "ForestPanel"
 
---------------------------------------------------
--- 👁️ ESP
---------------------------------------------------
-local function criarESP(player)
-	if player == LocalPlayer then return end
-	
-	player.CharacterAdded:Connect(function(char)
-		task.wait(1)
-		
-		if espAtivo and char then
-			local h = Instance.new("Highlight")
-			h.Name = "ESP"
-			h.FillColor = Color3.fromRGB(255,0,0)
-			h.Parent = char
-			
-			highlights[player] = h
-		end
-	end)
+local frame = Instance.new("Frame")
+frame.Parent = sg
+frame.Size = UDim2.new(0, 240, 0, 300)
+frame.Position = UDim2.new(0, 50, 0.5, -150)
+frame.BackgroundColor3 = Color3.fromRGB(20, 40, 20)
+
+Instance.new("UICorner", frame)
+
+local title = Instance.new("TextLabel", frame)
+title.Size = UDim2.new(1, 0, 0, 40)
+title.Text = "SURVIVAL PANEL"
+title.BackgroundTransparency = 1
+title.TextColor3 = Color3.new(1,1,1)
+
+-- BOTÃO PADRÃO
+local function createBtn(text, y, callback)
+    local btn = Instance.new("TextButton")
+    btn.Parent = frame
+    btn.Size = UDim2.new(0.9, 0, 0, 40)
+    btn.Position = UDim2.new(0.05, 0, y, 0)
+    btn.Text = text
+    btn.BackgroundColor3 = Color3.fromRGB(40,60,40)
+
+    local active = false
+
+    btn.MouseButton1Click:Connect(function()
+        active = not active
+        btn.BackgroundColor3 = active and Color3.fromRGB(0,180,0) or Color3.fromRGB(40,60,40)
+        callback(active)
+    end)
 end
 
-for _, p in pairs(Players:GetPlayers()) do
-	criarESP(p)
-end
-
-Players.PlayerAdded:Connect(criarESP)
-
-local function ativarESP()
-	for _, p in pairs(Players:GetPlayers()) do
-		if p ~= LocalPlayer and p.Character then
-			if not p.Character:FindFirstChild("ESP") then
-				local h = Instance.new("Highlight")
-				h.Name = "ESP"
-				h.FillColor = Color3.fromRGB(255,0,0)
-				h.Parent = p.Character
-				
-				highlights[p] = h
-			end
-		end
-	end
-end
-
-local function desativarESP()
-	for _, h in pairs(highlights) do
-		if h then h:Destroy() end
-	end
-	highlights = {}
-end
-
---------------------------------------------------
--- 📛 INFO
---------------------------------------------------
-local function criarInfo(player)
-	if player == LocalPlayer then return end
-	
-	player.CharacterAdded:Connect(function(char)
-		task.wait(1)
-		
-		if infoAtivo and char and char:FindFirstChild("Head") then
-			local bill = Instance.new("BillboardGui")
-			bill.Size = UDim2.new(0,100,0,40)
-			bill.AlwaysOnTop = true
-			bill.Parent = char.Head
-
-			local text = Instance.new("TextLabel")
-			text.Size = UDim2.new(1,0,1,0)
-			text.BackgroundTransparency = 1
-			text.TextColor3 = Color3.new(1,1,1)
-			text.TextScaled = true
-			text.Parent = bill
-
-			RunService.RenderStepped:Connect(function()
-				if char and char:FindFirstChild("Humanoid") then
-					text.Text = player.Name.." | "..math.floor(char.Humanoid.Health)
-				end
-			end)
-
-			billboards[player] = bill
-		end
-	end)
-end
-
-for _, p in pairs(Players:GetPlayers()) do
-	criarInfo(p)
-end
-
-Players.PlayerAdded:Connect(criarInfo)
-
-local function ativarInfo()
-	for _, p in pairs(Players:GetPlayers()) do
-		if p ~= LocalPlayer and p.Character then
-			criarInfo(p)
-		end
-	end
-end
-
-local function desativarInfo()
-	for _, b in pairs(billboards) do
-		if b then b:Destroy() end
-	end
-	billboards = {}
-end
-
---------------------------------------------------
--- 🗺️ RADAR
---------------------------------------------------
-radarFrame.Visible = false
-
-RunService.RenderStepped:Connect(function()
-	if not radarAtivo then return end
-	
-	radarFrame:ClearAllChildren()
-	
-	if not LocalPlayer.Character then return end
-	local root = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-	if not root then return end
-	
-	for _, p in pairs(Players:GetPlayers()) do
-		if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
-			
-			local dot = Instance.new("Frame")
-			dot.Size = UDim2.new(0,5,0,5)
-			dot.BackgroundColor3 = Color3.fromRGB(255,0,0)
-			dot.BorderSizePixel = 0
-			dot.Parent = radarFrame
-
-			local offset = (p.Character.HumanoidRootPart.Position - root.Position) / 10
-
-			dot.Position = UDim2.new(0.5, offset.X, 0.5, offset.Z)
-		end
-	end
+-- BOTÕES
+createBtn("Modo Deus", 0.15, function(v)
+    config.godMode = v
 end)
 
---------------------------------------------------
--- 🔘 BOTÕES
---------------------------------------------------
-btnESP.MouseButton1Click:Connect(function()
-	espAtivo = not espAtivo
-	btnESP.Text = "ESP: "..(espAtivo and "ON" or "OFF")
-	
-	if espAtivo then ativarESP() else desativarESP() end
+createBtn("Fogueira Infinita", 0.32, function(v)
+    config.infiniteFire = v
 end)
 
-btnRadar.MouseButton1Click:Connect(function()
-	radarAtivo = not radarAtivo
-	btnRadar.Text = "RADAR: "..(radarAtivo and "ON" or "OFF")
-	radarFrame.Visible = radarAtivo
+createBtn("Level Boost", 0.49, function(v)
+    config.levelBoost = v
 end)
 
-btnInfo.MouseButton1Click:Connect(function()
-	infoAtivo = not infoAtivo
-	btnInfo.Text = "INFO: "..(infoAtivo and "ON" or "OFF")
-	
-	if infoAtivo then ativarInfo() else desativarInfo() end
+createBtn("Acelerar Tempo", 0.66, function(v)
+    config.timeSpeed = v and 50 or 1
+end)
+
+-- LOOP
+RunService.Heartbeat:Connect(function(dt)
+    Lighting.ClockTime += dt * config.timeSpeed
+
+    local char = player.Character
+    if not char then return end
+
+    -- EXEMPLO SEU SISTEMA
+    local stats = player:FindFirstChild("leaderstats")
+
+    if config.levelBoost and stats then
+        local level = stats:FindFirstChild("Level")
+        if level then
+            level.Value = math.max(level.Value, 6)
+        end
+    end
+
+    if config.godMode then
+        local hunger = char:FindFirstChild("Hunger")
+        if hunger then hunger.Value = 100 end
+    end
 end)
