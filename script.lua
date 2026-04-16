@@ -1,114 +1,101 @@
-local player = game.Players.LocalPlayer
-local char = player.Character or player.CharacterAdded:Wait()
-local humanoid = char:WaitForChild("Humanoid")
-local root = char:WaitForChild("HumanoidRootPart")
-
+local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
+
+local player = Players.LocalPlayer
 
 local flying = false
 local speed = 50
 
--- BodyVelocity
-local velocity = Instance.new("BodyVelocity")
-velocity.MaxForce = Vector3.new(0,0,0)
-velocity.Velocity = Vector3.zero
-velocity.Parent = root
+local char, humanoid, root
+local velocity
 
 ------------------------------------------------
--- 🖥️ GUI (Painel)
+-- 🔁 Recria personagem corretamente
+------------------------------------------------
+local function setupCharacter(c)
+	char = c
+	humanoid = char:WaitForChild("Humanoid")
+	root = char:WaitForChild("HumanoidRootPart")
+
+	if velocity then
+		velocity:Destroy()
+	end
+
+	velocity = Instance.new("LinearVelocity")
+	velocity.Attachment0 = Instance.new("Attachment", root)
+	velocity.MaxForce = math.huge
+	velocity.Enabled = false
+	velocity.Parent = root
+end
+
+player.CharacterAdded:Connect(setupCharacter)
+if player.Character then
+	setupCharacter(player.Character)
+end
+
+------------------------------------------------
+-- 🖥️ GUI
 ------------------------------------------------
 local gui = Instance.new("ScreenGui")
-gui.Name = "FlyPanel"
+gui.Name = "FlySystem"
 gui.ResetOnSpawn = false
 gui.Parent = player:WaitForChild("PlayerGui")
 
 local frame = Instance.new("Frame")
 frame.Size = UDim2.new(0, 180, 0, 100)
 frame.Position = UDim2.new(0, 20, 0.5, -50)
-frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
 frame.Parent = gui
 
-local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(0, 10)
-corner.Parent = frame
-
-local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, 0, 0, 30)
-title.BackgroundTransparency = 1
-title.Text = "FLY SYSTEM"
-title.TextColor3 = Color3.fromRGB(255,255,255)
-title.Font = Enum.Font.SourceSansBold
-title.TextSize = 18
-title.Parent = frame
+Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 10)
 
 local button = Instance.new("TextButton")
-button.Size = UDim2.new(0.8, 0, 0, 40)
-button.Position = UDim2.new(0.1, 0, 0.45, 0)
-button.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+button.Size = UDim2.new(0.8,0,0,40)
+button.Position = UDim2.new(0.1,0,0.45,0)
 button.Text = "OFF"
+button.BackgroundColor3 = Color3.fromRGB(60,60,60)
 button.TextColor3 = Color3.fromRGB(255,255,255)
-button.Font = Enum.Font.SourceSansBold
-button.TextSize = 18
 button.Parent = frame
 
-local buttonCorner = Instance.new("UICorner")
-buttonCorner.CornerRadius = UDim.new(0, 8)
-buttonCorner.Parent = button
+Instance.new("UICorner", button).CornerRadius = UDim.new(0,8)
 
 ------------------------------------------------
--- 🛫 Função de ligar/desligar voo
+-- ✈️ Toggle voo
 ------------------------------------------------
 local function toggleFly()
 	flying = not flying
 
-	if flying then
-		velocity.MaxForce = Vector3.new(999999,999999,999999)
-		humanoid.PlatformStand = true
-		button.Text = "ON"
-		button.BackgroundColor3 = Color3.fromRGB(0, 170, 0)
-	else
-		velocity.MaxForce = Vector3.new(0,0,0)
-		humanoid.PlatformStand = false
-		velocity.Velocity = Vector3.zero
-		button.Text = "OFF"
-		button.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+	if velocity then
+		velocity.Enabled = flying
 	end
+
+	if humanoid then
+		humanoid.PlatformStand = flying
+	end
+
+	button.Text = flying and "ON" or "OFF"
+	button.BackgroundColor3 = flying and Color3.fromRGB(0,170,0)
+		or Color3.fromRGB(60,60,60)
 end
 
 button.MouseButton1Click:Connect(toggleFly)
 
 ------------------------------------------------
--- 🎮 Controle de movimento
+-- 🎮 Movimento
 ------------------------------------------------
 RunService.RenderStepped:Connect(function()
-	if flying then
-		local cam = workspace.CurrentCamera
-		local moveDir = Vector3.zero
+	if not flying or not root then return end
 
-		if UIS:IsKeyDown(Enum.KeyCode.W) then
-			moveDir += cam.CFrame.LookVector
-		end
-		if UIS:IsKeyDown(Enum.KeyCode.S) then
-			moveDir -= cam.CFrame.LookVector
-		end
-		if UIS:IsKeyDown(Enum.KeyCode.A) then
-			moveDir -= cam.CFrame.RightVector
-		end
-		if UIS:IsKeyDown(Enum.KeyCode.D) then
-			moveDir += cam.CFrame.RightVector
-		end
-		if UIS:IsKeyDown(Enum.KeyCode.Space) then
-			moveDir += Vector3.new(0,1,0)
-		end
-		if UIS:IsKeyDown(Enum.KeyCode.LeftShift) then
-			moveDir -= Vector3.new(0,1,0)
-		end
+	local cam = workspace.CurrentCamera
+	local dir = Vector3.zero
 
-		if moveDir.Magnitude > 0 then
-			velocity.Velocity = moveDir.Unit * speed
-		else
-			velocity.Velocity = Vector3.zero
-		end
-	end
+	if UIS:IsKeyDown(Enum.KeyCode.W) then dir += cam.CFrame.LookVector end
+	if UIS:IsKeyDown(Enum.KeyCode.S) then dir -= cam.CFrame.LookVector end
+	if UIS:IsKeyDown(Enum.KeyCode.A) then dir -= cam.CFrame.RightVector end
+	if UIS:IsKeyDown(Enum.KeyCode.D) then dir += cam.CFrame.RightVector end
+	if UIS:IsKeyDown(Enum.KeyCode.Space) then dir += Vector3.new(0,1,0) end
+	if UIS:IsKeyDown(Enum.KeyCode.LeftShift) then dir -= Vector3.new(0,1,0) end
+
+	velocity.VectorVelocity = dir.Magnitude > 0 and dir.Unit * speed or Vector3.zero
 end)
