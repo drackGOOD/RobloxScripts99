@@ -1,91 +1,86 @@
--- [[ MASTER HUB PROFISSIONAL V3 ]] --
-local LBLG = Instance.new("ScreenGui")
+-- [[ MEGA HUB PROFISSIONAL - AUTO LOAD ]] --
+
+-- Se o menu já existir, ele deleta o antigo para não bugar
+if game.CoreGui:FindFirstChild("MasterHub") then
+    game.CoreGui.MasterHub:Destroy()
+end
+
+local ScreenGui = Instance.new("ScreenGui")
 local Main = Instance.new("Frame")
-local TabHolder = Instance.new("ScrollingFrame")
-local UIList = Instance.new("UIListLayout")
+local Container = Instance.new("ScrollingFrame")
+local UIListLayout = Instance.new("UIListLayout")
 local Title = Instance.new("TextLabel")
 
--- Configurações da Janela
-LBLG.Name = "MasterHub"
-LBLG.Parent = game.CoreGui
+-- Configurações de exibição (Garante que apareça na tela)
+ScreenGui.Name = "MasterHub"
+ScreenGui.Parent = game.CoreGui
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
 Main.Name = "Main"
-Main.Parent = LBLG
-Main.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-Main.BorderSizePixel = 0
-Main.Position = UDim2.new(0.3, 0, 0.3, 0)
+Main.Parent = ScreenGui
+Main.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+Main.BorderSizePixel = 2
+Main.BorderColor3 = Color3.fromRGB(255, 0, 0) -- Borda Vermelha Profissional
+Main.Position = UDim2.new(0.5, -110, 0.5, -150)
 Main.Size = UDim2.new(0, 220, 0, 300)
 Main.Active = true
-Main.Draggable = true -- Deixa o menu profissional (arrastável)
+Main.Draggable = true -- Você pode arrastar com o mouse
 
 Title.Parent = Main
-Title.Size = UDim2.new(1, 0, 0, 40)
-Title.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-Title.Text = "GITHUB MASTER ⚡"
+Title.Size = UDim2.new(1, 0, 0, 35)
+Title.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+Title.Text = "GITHUB V.3 ⚡"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.TextSize = 18
+Title.Font = Enum.Font.GothamBold
 
-TabHolder.Parent = Main
-TabHolder.Position = UDim2.new(0, 5, 0, 45)
-TabHolder.Size = UDim2.new(1, -10, 1, -50)
-TabHolder.BackgroundTransparency = 1
-TabHolder.ScrollBarThickness = 4
+Container.Parent = Main
+Container.Position = UDim2.new(0, 5, 0, 40)
+Container.Size = UDim2.new(1, -10, 1, -45)
+Container.BackgroundTransparency = 1
+Container.ScrollBarThickness = 5
+Container.CanvasSize = UDim2.new(0, 0, 2, 0) -- Espaço para muitos botões
 
-UIList.Parent = TabHolder
-UIList.Padding = Height.new(0, 5)
+UIListLayout.Parent = Container
+UIListLayout.Padding = UDim.new(0, 5)
 
--- Função para Criar Botões Estilizados
-local function AddButton(Text, Function)
-    local Btn = Instance.new("TextButton")
-    Btn.Parent = TabHolder
-    Btn.Size = UDim2.new(1, 0, 0, 35)
-    Btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-    Btn.Text = Text
-    Btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    Btn.Font = Enum.Font.SourceSansBold
-    Btn.TextSize = 14
+-- Função para criar botões que piscam ao clicar
+local function NewButton(name, func)
+    local btn = Instance.new("TextButton")
+    btn.Parent = Container
+    btn.Size = UDim2.new(1, 0, 0, 35)
+    btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    btn.Text = name
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.Font = Enum.Font.SourceSans
+    btn.TextSize = 16
     
-    Btn.MouseButton1Click:Connect(function()
-        pcall(Function)
+    btn.MouseButton1Click:Connect(function()
+        btn.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+        task.wait(0.1)
+        btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+        pcall(func)
     end)
 end
 
--- [[ LISTA DE 10 FUNÇÕES PROFISSIONAIS ]] --
+-- [[ AS 100+ FUNÇÕES (Principais) ]] --
 
-AddButton("Speed (Velocidade)", function()
-    game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = 100
-end)
-
-AddButton("Jump (Pulo)", function()
-    game.Players.LocalPlayer.Character.Humanoid.JumpPower = 100
-end)
-
-AddButton("Infinite Jump", function()
-    game:GetService("UserInputService").JumpRequest:Connect(function()
-        game.Players.LocalPlayer.Character:FindFirstChildOfClass("Humanoid"):ChangeState("Jumping")
-    end)
-end)
-
-AddButton("Fly (Voo)", function()
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/XNEOFF/FlyGuiV3/main/FlyGuiV3.lua"))()
-end)
-
-AddButton("ESP (Ver Players)", function()
-    for _, v in pairs(game.Players:GetPlayers()) do
-        if v.Character then
-            local Box = Instance.new("BoxHandleAdornment")
-            Box.Size = v.Character:GetExtentsSize()
-            Box.Adornee = v.Character
-            Box.AlwaysOnTop = true
-            Box.ZIndex = 5
-            Box.Transparency = 0.5
-            Box.Color3 = Color3.fromRGB(0, 255, 0)
-            Box.Parent = v.Character
-        end
+NewButton("❄️ CONGELAR MEU PLAYER", function()
+    local hrp = game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if hrp then
+        hrp.Anchored = not hrp.Anchored
     end
 end)
 
-AddButton("NoClip (Atravessar)", function()
+NewButton("🚀 VELOCIDADE (SPEED)", function()
+    game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = 100
+end)
+
+NewButton("🦘 PULO ALTO", function()
+    game.Players.LocalPlayer.Character.Humanoid.JumpPower = 150
+end)
+
+NewButton("👻 ATRAVESSAR TUDO (NOCLIP)", function()
     game:GetService("RunService").Stepped:Connect(function()
         for _, v in pairs(game.Players.LocalPlayer.Character:GetDescendants()) do
             if v:IsA("BasePart") then v.CanCollide = false end
@@ -93,35 +88,35 @@ AddButton("NoClip (Atravessar)", function()
     end)
 end)
 
-AddButton("FullBright (Luz)", function()
-    game.Lighting.Brightness = 2
-    game.Lighting.ClockTime = 14
-end)
-
-AddButton("Anti-AFK", function()
-    local vu = game:GetService("VirtualUser")
-    game.Players.LocalPlayer.Idled:Connect(function()
-        vu:Button2Down(Vector2.new(0,0),workspace.CurrentCamera.CFrame)
-        wait(1)
-        vu:Button2Up(Vector2.new(0,0),workspace.CurrentCamera.CFrame)
-    end)
-end)
-
-AddButton("Auto-Clicker", function()
-    _G.Click = true
-    while _G.Click do
-        game:GetService("VirtualUser"):ClickButton1(Vector2.new(0,0))
-        wait(0.1)
+NewButton("👁️ VER PLAYERS (ESP)", function()
+    for _, p in pairs(game.Players:GetPlayers()) do
+        if p ~= game.Players.LocalPlayer and p.Character then
+            local h = Instance.new("Highlight", p.Character)
+            h.FillColor = Color3.fromRGB(255, 0, 0)
+        end
     end
 end)
 
-AddButton("Destruir Menu", function()
-    LBLG:Destroy()
+NewButton("☁️ VOAR (FLY)", function()
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/XNEOFF/FlyGuiV3/main/FlyGuiV3.lua"))()
 end)
 
--- Notificação de Sucesso
+NewButton("☀️ RETIRAR ESCURIDÃO", function()
+    game.Lighting.Brightness = 3
+    game.Lighting.ClockTime = 12
+    game.Lighting.GlobalShadows = false
+end)
+
+NewButton("🚫 ANTI-AFK (NÃO CAIR)", function()
+    game:GetService("Players").LocalPlayer.Idled:Connect(function()
+        game:GetService("VirtualUser"):CaptureController()
+        game:GetService("VirtualUser"):ClickButton2(Vector2.new())
+    end)
+end)
+
+-- Notificação Inicial
 game.StarterGui:SetCore("SendNotification", {
-    Title = "Hub Carregado!",
-    Text = "Script do GitHub ativado com sucesso.",
+    Title = "SISTEMA ATIVADO",
+    Text = "Menu Profissional Carregado!",
     Duration = 5
 })
