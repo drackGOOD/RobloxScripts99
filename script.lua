@@ -8,33 +8,31 @@ local player = Players.LocalPlayer
 -- VARIÁVEIS
 ------------------------------------------------
 local flying = false
-local speed = 50
-local hoverForce = 0
+local speed = 60
 
 local char, humanoid, root
-local velocity, att
+local att, force
 
 ------------------------------------------------
--- PERSONAGEM (ANTI-RESPAWN BUG)
+-- SETUP PERSONAGEM (ANTI BUG)
 ------------------------------------------------
 local function setupCharacter(c)
 	char = c
 	humanoid = char:WaitForChild("Humanoid")
 	root = char:WaitForChild("HumanoidRootPart")
 
-	-- limpeza
-	if velocity then velocity:Destroy() end
+	if force then force:Destroy() end
 	if att then att:Destroy() end
 
 	att = Instance.new("Attachment")
 	att.Parent = root
 
-	velocity = Instance.new("LinearVelocity")
-	velocity.Attachment0 = att
-	velocity.RelativeTo = Enum.ActuatorRelativeTo.World
-	velocity.MaxForce = math.huge
-	velocity.Enabled = false
-	velocity.Parent = root
+	force = Instance.new("VectorForce")
+	force.Attachment0 = att
+	force.RelativeTo = Enum.ActuatorRelativeTo.World
+	force.Enabled = false
+	force.Force = Vector3.zero
+	force.Parent = root
 end
 
 player.CharacterAdded:Connect(setupCharacter)
@@ -44,16 +42,16 @@ if player.Character then setupCharacter(player.Character) end
 -- GUI
 ------------------------------------------------
 local gui = Instance.new("ScreenGui")
-gui.Name = "FlyPro"
+gui.Name = "FlySystem"
 gui.ResetOnSpawn = false
 gui.Parent = player:WaitForChild("PlayerGui")
 
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 220, 0, 150)
-frame.Position = UDim2.new(0, 20, 0.5, -75)
-frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
+frame.Size = UDim2.new(0, 200, 0, 140)
+frame.Position = UDim2.new(0, 20, 0.5, -70)
+frame.BackgroundColor3 = Color3.fromRGB(25,25,25)
 frame.Parent = gui
-Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 10)
+Instance.new("UICorner", frame).CornerRadius = UDim.new(0,10)
 
 ------------------------------------------------
 -- BOTÃO ON/OFF
@@ -62,57 +60,54 @@ local button = Instance.new("TextButton")
 button.Size = UDim2.new(0.8,0,0,35)
 button.Position = UDim2.new(0.1,0,0.1,0)
 button.Text = "FLY: OFF"
-button.BackgroundColor3 = Color3.fromRGB(60,60,60)
-button.TextColor3 = Color3.fromRGB(255,255,255)
 button.Parent = frame
-Instance.new("UICorner", button).CornerRadius = UDim.new(0,8)
 
 ------------------------------------------------
--- SLIDER DE VELOCIDADE
+-- SLIDER SIMPLES
 ------------------------------------------------
-local sliderBar = Instance.new("Frame")
-sliderBar.Size = UDim2.new(0.8,0,0,8)
-sliderBar.Position = UDim2.new(0.1,0,0.5,0)
-sliderBar.BackgroundColor3 = Color3.fromRGB(80,80,80)
-sliderBar.Parent = frame
-Instance.new("UICorner", sliderBar).CornerRadius = UDim.new(1,0)
+local bar = Instance.new("Frame")
+bar.Size = UDim2.new(0.8,0,0,8)
+bar.Position = UDim2.new(0.1,0,0.55,0)
+bar.BackgroundColor3 = Color3.fromRGB(70,70,70)
+bar.Parent = frame
+Instance.new("UICorner", bar)
 
-local sliderFill = Instance.new("Frame")
-sliderFill.Size = UDim2.new(0.5,0,1,0)
-sliderFill.BackgroundColor3 = Color3.fromRGB(0,170,0)
-sliderFill.Parent = sliderBar
-Instance.new("UICorner", sliderFill).CornerRadius = UDim.new(1,0)
+local fill = Instance.new("Frame")
+fill.Size = UDim2.new(0.4,0,1,0)
+fill.BackgroundColor3 = Color3.fromRGB(0,170,0)
+fill.Parent = bar
+Instance.new("UICorner", fill)
 
 local dragging = false
 
-sliderBar.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+bar.InputBegan:Connect(function(i)
+	if i.UserInputType == Enum.UserInputType.MouseButton1 then
 		dragging = true
 	end
 end)
 
-UIS.InputEnded:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+UIS.InputEnded:Connect(function(i)
+	if i.UserInputType == Enum.UserInputType.MouseButton1 then
 		dragging = false
 	end
 end)
 
-UIS.InputChanged:Connect(function(input)
-	if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-		local x = math.clamp((input.Position.X - sliderBar.AbsolutePosition.X) / sliderBar.AbsoluteSize.X, 0, 1)
-		sliderFill.Size = UDim2.new(x,0,1,0)
-		speed = math.floor(10 + (x * 200))
+UIS.InputChanged:Connect(function(i)
+	if dragging and i.UserInputType == Enum.UserInputType.MouseMovement then
+		local x = math.clamp((i.Position.X - bar.AbsolutePosition.X) / bar.AbsoluteSize.X, 0, 1)
+		fill.Size = UDim2.new(x,0,1,0)
+		speed = math.floor(20 + x * 180)
 	end
 end)
 
 ------------------------------------------------
--- FUNÇÃO TOGGLE
+-- TOGGLE
 ------------------------------------------------
 local function toggleFly()
 	flying = not flying
 
-	if velocity then
-		velocity.Enabled = flying
+	if force then
+		force.Enabled = flying
 	end
 
 	if humanoid then
@@ -120,24 +115,19 @@ local function toggleFly()
 	end
 
 	button.Text = flying and "FLY: ON" or "FLY: OFF"
-	button.BackgroundColor3 = flying and Color3.fromRGB(0,170,0)
-		or Color3.fromRGB(60,60,60)
 end
 
 button.MouseButton1Click:Connect(toggleFly)
 
-------------------------------------------------
--- TECLA G
-------------------------------------------------
-UIS.InputBegan:Connect(function(input, gp)
+UIS.InputBegan:Connect(function(i, gp)
 	if gp then return end
-	if input.KeyCode == Enum.KeyCode.G then
+	if i.KeyCode == Enum.KeyCode.G then
 		toggleFly()
 	end
 end)
 
 ------------------------------------------------
--- MOVIMENTO + HOVER + ANTI-BUG
+-- MOVIMENTO + HOVER + ANTI BUG
 ------------------------------------------------
 RunService.RenderStepped:Connect(function()
 	if not flying or not root then return end
@@ -155,17 +145,13 @@ RunService.RenderStepped:Connect(function()
 	elseif UIS:IsKeyDown(Enum.KeyCode.LeftShift) then
 		dir -= Vector3.new(0,1,0)
 	else
-		-- 🪶 HOVER AUTOMÁTICO
-		dir += Vector3.new(0, hoverForce, 0)
+		-- 🪶 hover automático
+		dir += Vector3.new(0,0.2,0)
 	end
 
-	-- 🧠 ANTI BUG (não divide zero + estabilidade)
 	if dir.Magnitude > 0 then
-		velocity.VectorVelocity = dir.Unit * speed
+		force.Force = dir.Unit * speed * 200
 	else
-		velocity.VectorVelocity = Vector3.zero
+		force.Force = Vector3.zero
 	end
-
-	-- hover leve constante pra não cair
-	hoverForce = 0.2
 end)
