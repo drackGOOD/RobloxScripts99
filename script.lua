@@ -1,196 +1,196 @@
--- ULTIMATE PANEL V4 (ABSURDO)
+-- SERVIÇOS
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local Lighting = game:GetService("Lighting")
-local UIS = game:GetService("UserInputService")
-local TweenService = game:GetService("TweenService")
-local HttpService = game:GetService("HttpService")
 
 local plr = Players.LocalPlayer
 
--- ================= SAVE SYSTEM =================
-local saveFile = "ultimate_config.json"
+-- ESTADO
+_G.TacticalAI = true
 
-local state = {
-    Speed = false,
-    Jump = false,
-    Fly = false,
-    NoClip = false,
-    FullBright = false,
-    ESP = false
-}
+-- GUI BASE
+local gui = Instance.new("ScreenGui", plr.PlayerGui)
+gui.Name = "TacticalAI"
 
--- carregar config
-pcall(function()
-    if readfile and isfile and isfile(saveFile) then
-        state = HttpService:JSONDecode(readfile(saveFile))
-    end
-end)
+-- LABEL PRINCIPAL
+local info = Instance.new("TextLabel", gui)
+info.Size = UDim2.new(0,300,0,50)
+info.Position = UDim2.new(0.5,-150,0,50)
+info.BackgroundColor3 = Color3.fromRGB(20,20,20)
+info.TextColor3 = Color3.new(1,1,1)
+info.TextScaled = true
+info.Text = "IA TÁTICA"
+Instance.new("UICorner", info)
 
-local function save()
-    if writefile then
-        writefile(saveFile, HttpService:JSONEncode(state))
-    end
+-- ALERTA
+local alert = Instance.new("TextLabel", gui)
+alert.Size = UDim2.new(0,300,0,40)
+alert.Position = UDim2.new(0.5,-150,0,110)
+alert.BackgroundColor3 = Color3.fromRGB(80,0,0)
+alert.TextColor3 = Color3.new(1,1,1)
+alert.TextScaled = true
+alert.Visible = false
+Instance.new("UICorner", alert)
+
+-- RADAR
+local radar = Instance.new("Frame", gui)
+radar.Size = UDim2.new(0,150,0,150)
+radar.Position = UDim2.new(1,-170,1,-170)
+radar.BackgroundColor3 = Color3.fromRGB(20,20,20)
+Instance.new("UICorner", radar)
+
+local center = Instance.new("Frame", radar)
+center.Size = UDim2.new(0,6,0,6)
+center.Position = UDim2.new(0.5,-3,0.5,-3)
+center.BackgroundColor3 = Color3.new(0,1,0)
+
+local dots = {}
+
+-- MEMÓRIA
+local lastPos = {}
+local lastTime = {}
+
+-- FUNÇÕES
+local function getRoot()
+    local c = plr.Character
+    return c and c:FindFirstChild("HumanoidRootPart")
 end
 
--- ================= UI =================
-local sg = Instance.new("ScreenGui", plr.PlayerGui)
-sg.ResetOnSpawn = false
+local function getEnemies()
+    local root = getRoot()
+    if not root then return {} end
 
-local main = Instance.new("Frame", sg)
-main.Size = UDim2.new(0, 520, 0, 360)
-main.Position = UDim2.new(0.5,-260,0.5,-180)
-main.BackgroundColor3 = Color3.fromRGB(15,15,20)
-main.Active = true
-main.Draggable = true
-Instance.new("UICorner", main)
+    local list = {}
 
--- TOP
-local top = Instance.new("Frame", main)
-top.Size = UDim2.new(1,0,0,40)
-top.BackgroundColor3 = Color3.fromRGB(30,0,50)
+    for _,v in pairs(workspace:GetDescendants()) do
+        if v:IsA("Model") and v:FindFirstChild("Humanoid") then
+            if v ~= plr.Character then
+                local hrp = v:FindFirstChild("HumanoidRootPart")
+                local hum = v:FindFirstChild("Humanoid")
 
-local title = Instance.new("TextLabel", top)
-title.Size = UDim2.new(1,0,1,0)
-title.Text = "💜 ABSURD PANEL"
-title.BackgroundTransparency = 1
-title.TextColor3 = Color3.new(1,1,1)
-title.Font = Enum.Font.GothamBold
+                if hrp and hum then
+                    local dist = (root.Position - hrp.Position).Magnitude
+                    local name = v.Name:lower()
 
--- TABS
-local tabFrame = Instance.new("Frame", main)
-tabFrame.Size = UDim2.new(0,130,1,-40)
-tabFrame.Position = UDim2.new(0,0,0,40)
-tabFrame.BackgroundColor3 = Color3.fromRGB(20,20,30)
-
-local content = Instance.new("Frame", main)
-content.Size = UDim2.new(1,-130,1,-40)
-content.Position = UDim2.new(0,130,0,40)
-
-local pages = {}
-
-local function createPage(name)
-    local frame = Instance.new("Frame", content)
-    frame.Size = UDim2.new(1,0,1,0)
-    frame.Visible = false
-
-    local layout = Instance.new("UIListLayout", frame)
-    layout.Padding = UDim.new(0,8)
-
-    pages[name] = frame
-
-    local btn = Instance.new("TextButton", tabFrame)
-    btn.Size = UDim2.new(1,0,0,40)
-    btn.Text = name
-    btn.BackgroundColor3 = Color3.fromRGB(40,0,70)
-    btn.TextColor3 = Color3.new(1,1,1)
-
-    btn.MouseButton1Click:Connect(function()
-        for _,p in pairs(pages) do p.Visible = false end
-        frame.Visible = true
-    end)
-
-    return frame
-end
-
-local playerPage = createPage("Player")
-local visualPage = createPage("Visual")
-
-pages["Player"].Visible = true
-
--- ================= BOTÕES =================
-local function toggle(parent,text,key)
-    local b = Instance.new("TextButton", parent)
-    b.Size = UDim2.new(1,-10,0,40)
-    b.Text = text.." [OFF]"
-    b.BackgroundColor3 = Color3.fromRGB(50,50,60)
-    b.TextColor3 = Color3.new(1,1,1)
-
-    b.MouseButton1Click:Connect(function()
-        state[key] = not state[key]
-        b.Text = text.." "..(state[key] and "[ON]" or "[OFF]")
-        save()
-    end)
-end
-
--- PLAYER
-toggle(playerPage,"Speed","Speed")
-toggle(playerPage,"Jump","Jump")
-toggle(playerPage,"Fly","Fly")
-toggle(playerPage,"NoClip","NoClip")
-
--- VISUAL
-toggle(visualPage,"FullBright","FullBright")
-toggle(visualPage,"ESP","ESP")
-
--- ================= ESP =================
-local espFolder = Instance.new("Folder", game.CoreGui)
-
-RunService.RenderStepped:Connect(function()
-    if state.ESP then
-        for _,p in pairs(Players:GetPlayers()) do
-            if p ~= plr and p.Character then
-                if not espFolder:FindFirstChild(p.Name) then
-                    local h = Instance.new("Highlight", espFolder)
-                    h.Name = p.Name
-                    h.FillColor = Color3.fromRGB(150,0,255)
-                    h.OutlineColor = Color3.new(1,1,1)
-                    h.Adornee = p.Character
+                    if name:find("enemy") or name:find("monster") or name:find("zombie") then
+                        table.insert(list,{
+                            model = v,
+                            dist = dist,
+                            hp = hum.Health / hum.MaxHealth,
+                            pos = hrp.Position
+                        })
+                    end
                 end
             end
         end
-    else
-        espFolder:ClearAllChildren()
     end
-end)
 
--- ================= MOVIMENTO =================
-local dir = Vector3.zero
+    return list
+end
 
-UIS.InputBegan:Connect(function(i,g)
-    if g then return end
+local function getVelocity(model)
+    local hrp = model:FindFirstChild("HumanoidRootPart")
+    if not hrp then return 0 end
 
-    if i.KeyCode == Enum.KeyCode.W then dir = Vector3.new(0,0,-1) end
-    if i.KeyCode == Enum.KeyCode.S then dir = Vector3.new(0,0,1) end
-    if i.KeyCode == Enum.KeyCode.A then dir = Vector3.new(-1,0,0) end
-    if i.KeyCode == Enum.KeyCode.D then dir = Vector3.new(1,0,0) end
-    if i.KeyCode == Enum.KeyCode.Space then dir = Vector3.new(0,1,0) end
-end)
+    local now = tick()
+    local lp = lastPos[model]
+    local lt = lastTime[model]
 
-UIS.InputEnded:Connect(function()
-    dir = Vector3.zero
-end)
+    lastPos[model] = hrp.Position
+    lastTime[model] = now
 
--- ================= LOOP =================
+    if lp and lt then
+        local dist = (hrp.Position - lp).Magnitude
+        local dt = now - lt
+        if dt > 0 then
+            return dist / dt
+        end
+    end
+
+    return 0
+end
+
+local function predict(enemy)
+    local root = getRoot()
+    local hrp = enemy:FindFirstChild("HumanoidRootPart")
+    if not root or not hrp then return false end
+
+    local dist = (root.Position - hrp.Position).Magnitude
+    local vel = getVelocity(enemy)
+
+    local dir = (root.Position - hrp.Position).Unit
+    local move = hrp.Velocity.Unit
+    local dot = dir:Dot(move)
+
+    if dist < 25 and vel > 10 and dot > 0.7 then
+        return true, dist
+    end
+
+    return false
+end
+
+local function getWeakest(list)
+    local best, hp = nil, 1
+    for _,e in pairs(list) do
+        if e.hp < hp then
+            hp = e.hp
+            best = e
+        end
+    end
+    return best
+end
+
+-- LOOP
 RunService.RenderStepped:Connect(function()
-    local char = plr.Character
-    if not char then return end
+    if not _G.TacticalAI then return end
 
-    local hum = char:FindFirstChildOfClass("Humanoid")
-    local root = char:FindFirstChild("HumanoidRootPart")
+    local root = getRoot()
+    if not root then return end
 
-    if hum then
-        hum.WalkSpeed = state.Speed and 70 or 16
-        hum.JumpPower = state.Jump and 130 or 50
-    end
+    local enemies = getEnemies()
 
-    if state.Fly and root then
-        root.Velocity = dir * 100
-    end
+    -- limpar radar
+    for _,d in pairs(dots) do d:Destroy() end
+    dots = {}
 
-    if state.NoClip then
-        for _,v in pairs(char:GetDescendants()) do
-            if v:IsA("BasePart") then
-                v.CanCollide = false
+    -- radar + previsão
+    local danger = false
+
+    for _,e in pairs(enemies) do
+        if e.dist < 100 then
+            local rel = (e.pos - root.Position)
+            local x = math.clamp(rel.X/100,-1,1)
+            local y = math.clamp(rel.Z/100,-1,1)
+
+            local dot = Instance.new("Frame", radar)
+            dot.Size = UDim2.new(0,6,0,6)
+            dot.Position = UDim2.new(0.5 + x*0.5,-3,0.5 + y*0.5,-3)
+            dot.BackgroundColor3 = Color3.fromRGB(255*(1-e.hp),255*e.hp,0)
+            Instance.new("UICorner", dot)
+
+            table.insert(dots, dot)
+
+            local will = predict(e.model)
+            if will then
+                danger = true
             end
         end
     end
 
-    if state.FullBright then
-        Lighting.Brightness = 5
-        Lighting.FogEnd = 100000
-        Lighting.ClockTime = 14
+    -- alvo mais fraco
+    local target = getWeakest(enemies)
+
+    if target then
+        info.Text = "🎯 Alvo fraco ("..math.floor(target.hp*100).."%)"
+    else
+        info.Text = "SAFE"
+    end
+
+    -- alerta
+    if danger then
+        alert.Visible = true
+        alert.Text = "⚠️ ATAQUE IMINENTE!"
+    else
+        alert.Visible = false
     end
 end)
-
-print("💜 ABSURD PANEL LOADED")
